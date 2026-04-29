@@ -39,6 +39,16 @@ public class Claim {
     @Version
     private Long version;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (regulatoryDeadline == null) {
+            regulatoryDeadline = createdAt.plusDays(90);
+        }
+    }
 }

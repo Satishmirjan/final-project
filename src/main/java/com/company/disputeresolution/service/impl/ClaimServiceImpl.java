@@ -46,8 +46,6 @@ public class ClaimServiceImpl implements IClaimService {
         claim.setCustomer(customer);
         claim.setLifecycle(ClaimLifecycle.INITIATED);
         claim.setTotalClaimedAmount(request.getAmount());
-        claim.setRegulatoryDeadline(LocalDateTime.now().plusDays(90));
-        claim.setCreatedAt(LocalDateTime.now());
         claim = claimRepository.save(claim);
 
         if (idempotencyKey != null) {

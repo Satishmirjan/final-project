@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/disputedb_dev
+    username: dev
+    password: dev
+  jpa:
+    hibernate:
+      ddl-auto: create-drop

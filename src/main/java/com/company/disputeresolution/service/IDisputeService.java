@@ -9,6 +9,10 @@ import java.util.Optional;
 public interface IDisputeService {
     Optional<DisputeDTO> getDisputeById(Long id);
     List<DisputeDTO> getCustomerDisputes(String customerId);
-    DisputeDTO updateDisputeStatus(Long id, StatusUpdateRequest request);
     List<DisputeDTO> getDisputesByStatus(DisputeStatus status);
+    DisputeDTO updateDisputeStatus(Long id, com.company.disputeresolution.dto.request.StatusUpdateRequest request);
+    List<com.company.disputeresolution.dto.response.AuditLogDTO> getDisputeHistory(Long id);
+    void cancelDispute(Long id, String customerId);
+    void addAttachment(Long id, String fileUrl);
+    List<String> getAttachments(Long id);
 }

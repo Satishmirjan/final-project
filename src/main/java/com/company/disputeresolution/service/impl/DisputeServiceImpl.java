@@ -26,8 +26,12 @@ public class DisputeServiceImpl implements IDisputeService {
     private final DisputeRepository disputeRepository;
     private final UserRepository userRepository;
     private final IAuditLogService auditLogService;
+    private final com.company.disputeresolution.repository.DisputeAuditLogRepository auditLogRepo;
     private final com.company.disputeresolution.event.EventPublisher eventPublisher;
     private final com.company.disputeresolution.service.IRefundService refundService;
+
+    // Temporary mock storage for attachments
+    private final java.util.Map<Long, List<String>> temporaryAttachmentStorage = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Override
     public Optional<DisputeDTO> getDisputeById(Long id) {
@@ -106,5 +110,42 @@ public class DisputeServiceImpl implements IDisputeService {
             }
             case CLOSED -> dispute.setPhase(DisputePhase.RESOLUTION);
         }
+    }
+
+    @Override
+    public List<com.company.disputeresolution.dto.response.AuditLogDTO> getDisputeHistory(Long id) {
+        Dispute dispute = disputeRepository.findById(id).orElseThrow(() -> new RuntimeException("Dispute not found"));
+        return auditLogRepo.findByDisputeOrderByChangedAtDesc(dispute).stream()
+                .map(com.company.disputeresolution.mapper.AuditLogMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void cancelDispute(Long id, String customerId) {
+        Dispute dispute = disputeRepository.findById(id).orElseThrow(() -> new RuntimeException("Dispute not found"));
+        if (!dispute.getCustomer().getUserId().equals(customerId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        if (dispute.getStatus() != DisputeStatus.OPEN) {
+            throw new InvalidStateTransitionException("Only OPEN disputes can be cancelled");
+        }
+        DisputeStatus oldStatus = dispute.getStatus();
+        dispute.setStatus(DisputeStatus.CLOSED);
+        dispute.setPhase(DisputePhase.RESOLUTION);
+        dispute.setUpdatedAt(LocalDateTime.now());
+        disputeRepository.save(dispute);
+        
+        auditLogService.logStatusChange(dispute, dispute.getClaim(), dispute.getCustomer(), oldStatus, DisputeStatus.CLOSED, "Cancelled by Customer");
+    }
+
+    @Override
+    public void addAttachment(Long id, String fileUrl) {
+        temporaryAttachmentStorage.computeIfAbsent(id, k -> new java.util.ArrayList<>()).add(fileUrl);
+    }
+
+    @Override
+    public List<String> getAttachments(Long id) {
+        return temporaryAttachmentStorage.getOrDefault(id, List.of());
     }
 }
